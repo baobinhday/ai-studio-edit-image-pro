@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 interface DrawingCanvasProps {
   imageUrl: string;
@@ -10,7 +10,6 @@ interface DrawingCanvasProps {
 
 const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ imageUrl, onMaskChange, brushSize, zoomScale }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [baseSize, setBaseSize] = useState({ width: 0, height: 0 });
@@ -19,11 +18,14 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ imageUrl, onMaskChange, b
     const img = new Image();
     img.src = imageUrl;
     img.onload = () => {
-      // Find parent container dimension to establish initial "fit" size
-      // We assume the parent of the root in App provides the constraint
-      const viewportPadding = 64; 
-      const maxWidth = (window.innerWidth - 320 - 256) - viewportPadding; // Subtracting sidebars
-      const maxHeight = (window.innerHeight - 64 - 40) - viewportPadding; // Subtracting header/footer
+      // Calculate max available space
+      // On small screens, sidebars are hidden/overlays, so use more width
+      const isMobile = window.innerWidth < 1024;
+      const horizontalPadding = isMobile ? 40 : 120;
+      const verticalPadding = isMobile ? 180 : 200;
+      
+      const maxWidth = window.innerWidth - (isMobile ? 0 : 320 + 256) - horizontalPadding;
+      const maxHeight = window.innerHeight - verticalPadding;
       
       let width = img.width;
       let height = img.height;
@@ -37,6 +39,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ imageUrl, onMaskChange, b
   }, [imageUrl]);
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
     setIsDrawing(true);
     draw(e);
   };
@@ -67,12 +70,11 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ imageUrl, onMaskChange, b
       clientY = e.clientY;
     }
 
-    // Adjust coordinates based on the actual bounding rect and the zoom scale
-    // rect.width / canvas.width gives us the current visual scale
     const x = (clientX - rect.left) / (rect.width / canvas.width);
     const y = (clientY - rect.top) / (rect.height / canvas.height);
 
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+    ctx.fillStyle = 'red';
+    ctx.globalCompositeOperation = 'source-over';
     ctx.beginPath();
     ctx.arc(x, y, brushSize, 0, Math.PI * 2);
     ctx.fill();
@@ -87,21 +89,22 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ imageUrl, onMaskChange, b
     }
   };
 
+  if (baseSize.width === 0) return <div className="animate-pulse text-slate-500 font-bold uppercase tracking-widest text-[10px]">Preparing Canvas...</div>;
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-full">
+    <div className="flex flex-col items-center justify-center max-w-full">
       <div 
         ref={containerRef}
-        className="relative bg-slate-900 rounded-lg shadow-2xl border border-slate-700 transition-all duration-75"
+        className="relative bg-slate-900 rounded-lg shadow-2xl border border-slate-700 overflow-hidden touch-none"
         style={{ 
           width: baseSize.width * zoomScale, 
           height: baseSize.height * zoomScale 
         }}
       >
         <img 
-          ref={imageRef}
           src={imageUrl} 
           alt="To edit" 
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none rounded-lg"
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
         />
         <canvas
           ref={maskCanvasRef}
@@ -109,9 +112,10 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ imageUrl, onMaskChange, b
           height={baseSize.height}
           style={{ 
             width: baseSize.width * zoomScale, 
-            height: baseSize.height * zoomScale 
+            height: baseSize.height * zoomScale,
+            opacity: 0.6
           }}
-          className="absolute inset-0 cursor-crosshair rounded-lg"
+          className="absolute inset-0 cursor-crosshair"
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
@@ -121,19 +125,17 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ imageUrl, onMaskChange, b
           onTouchEnd={stopDrawing}
         />
       </div>
-      <div className="mt-6 mb-12 flex flex-col items-center gap-2">
-        <div className="flex gap-4">
-          <button 
-            onClick={clearMask}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg text-xs font-medium transition-all shadow-md"
-          >
-            Clear Selection
-          </button>
+      <div className="mt-4 md:mt-8 mb-4 flex flex-col items-center gap-2 md:gap-3">
+        <button 
+          onClick={clearMask}
+          className="px-6 py-2 bg-slate-800 hover:bg-rose-900/40 hover:text-rose-400 border border-slate-700 text-slate-300 rounded-xl text-[10px] md:text-xs font-bold transition-all"
+        >
+          Clear Selection
+        </button>
+        <div className="px-3 md:px-4 py-1 md:py-1.5 bg-slate-900/50 rounded-full border border-slate-800 flex items-center gap-2">
+           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+           <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest">Mark target areas</span>
         </div>
-        <p className="text-slate-500 text-[10px] flex items-center">
-          <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
-          Paint the areas you want the AI to modify
-        </p>
       </div>
     </div>
   );

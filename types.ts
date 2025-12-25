@@ -22,6 +22,8 @@ export interface GeneratedImage {
 export interface EditorState {
   image: string | null;
   mask: string | null;
+  referenceImage: string | null;
+  apiKeyInput: string;
   prompt: string;
   loading: boolean;
   error: string | null;
@@ -45,7 +47,5 @@ export const PREDEFINED_FILTERS: StyleFilter[] = [
   { id: 'vintage', name: 'Vintage', prompt: 'Apply a vintage, retro 70s film look with warm tones and slight grain.', icon: '🎞️' },
   { id: 'noir', name: 'Noir', prompt: 'Convert to high-contrast black and white noir style with dramatic lighting.', icon: '🌑' },
   { id: 'cartoon', name: 'Cartoon', prompt: 'Transform into a vibrant, clean-lined cartoon or cel-shaded illustration.', icon: '🎨' },
-  { id: 'oil', name: 'Oil Painting', prompt: 'Turn into a rich, textured classical oil painting with visible brushstrokes.', icon: '🖌️' },
-  { id: 'cyberpunk', name: 'Cyberpunk', prompt: 'Apply a cyberpunk aesthetic with neon pink and cyan lights and futuristic vibes.', icon: '🧪' },
-  { id: 'sketch', name: 'Sketch', prompt: 'Convert into a detailed pencil sketch or charcoal drawing.', icon: '✏️' },
+  { id: 'cyberpunk', name: 'Cyberpunk', prompt: 'Apply a cyberpunk aesthetic with neon pink and cyan lights.', icon: '🧪' },
 ];
