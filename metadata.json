@@ -1,0 +1,7 @@
+{
+  "name": "Lumina AI Image Studio",
+  "description": "A professional-grade AI image editing and generation platform powered by Gemini 2.5 Flash and Gemini 3 Pro. Edit specific areas of your photos or generate high-quality images in 1K, 2K, and 4K resolutions.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
