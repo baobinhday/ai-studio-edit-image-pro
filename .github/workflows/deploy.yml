@@ -37,6 +37,8 @@ jobs:
         env:
           GITHUB_PAGES: "true"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
+          CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
