@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bunx --bun vite",
     "build": "bunx --bun vite build",
-    "preview": "bunx --bun vite preview"
+    "preview": "bunx --bun vite preview",
+    "deploy-convex": "pnpm convex dev"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
+    "convex": "^1.31.2",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   }

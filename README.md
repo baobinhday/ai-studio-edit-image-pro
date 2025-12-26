@@ -10,16 +10,16 @@ Lumina is a professional-grade AI image editing and generation platform powered 
 - **Reference Images**: Upload a reference image to guide the style or subject of your generations.
 - **Project History**: A visual sidebar to manage and revisit your previous creations.
 - **Responsive Canvas**: Smooth zooming and panning for detailed editing.
+- **Secure Backend Proxy**: Optional Convex backend for secure API key management.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - A Google Gemini API Key (obtainable from [Google AI Studio](https://aistudio.google.com/)).
+- Node.js 18+ and pnpm (or npm)
 
-### How to Run (Quick Start)
-
-Since this project uses ESM modules and modern web standards, you can run it using any static file server.
+### Quick Start
 
 1. **Clone the repository**:
 
@@ -28,56 +28,112 @@ Since this project uses ESM modules and modern web standards, you can run it usi
    cd lumina
    ```
 
-2. **Run with a local server**:
-   If you have Node.js installed, you can use `npx` to serve the files instantly:
-   ```bash
-   npx serve .
-   ```
-   _Note: This requires a browser that supports `.tsx` files directly if your server doesn't transpile them. For a production-ready dev experience, see the "How to Dev" section below._
-
-### How to Dev
-
-For the best development experience with Hot Module Replacement (HMR) and TypeScript support:
-
-1. **Install dependencies**:
+2. **Install dependencies**:
 
    ```bash
-   npm install
+   pnpm install
    ```
 
-2. **Start the development server (Vite recommended)**:
+3. **Start the development server**:
 
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
-3. **Build for production**:
+4. **Open the app** at `http://localhost:3000` and enter your Gemini API key in the sidebar.
+
+## 🔐 Authentication Options
+
+You have two ways to authenticate with the Gemini API:
+
+### Option 1: Direct API Key (Simple)
+
+Enter your Gemini API key directly in the "Gemini API Key" field in the sidebar.
+
+### Option 2: Server Password with Convex (Secure)
+
+Use a password to access a shared API key stored securely on the server.
+
+#### Setting Up Convex Backend
+
+1. **Initialize Convex**:
+
    ```bash
-   npm run build
+   pnpm convex dev
    ```
 
-## 🛠️ Configuration
+   Follow the prompts to create a new project.
 
-### API Key
+2. **Configure environment variables** in the [Convex Dashboard](https://dashboard.convex.dev):
+   - Go to your project → **Settings** → **Environment Variables**
+   - Add these secrets:
+     | Name | Description |
+     |------|-------------|
+     | `GEMINI_API_KEY` | Your Gemini API key |
+     | `APP_PASSWORD` | Password users will enter |
+     | `GEMINI_BASE_URL` | (Optional) Custom API endpoint |
 
-You can use the application in two ways:
+3. **Deploy to production**:
 
-1. **Runtime Input**: Enter your API key directly into the "Authentication" field in the left sidebar.
-2. **Environment Variable**: Set an `API_KEY` environment variable in your deployment environment.
+   ```bash
+   pnpm convex deploy
+   ```
+
+4. **Configure frontend env**:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Add your Convex URL to `.env`:
+
+   ```
+   VITE_CONVEX_URL=https://YOUR_DEPLOYMENT.convex.site
+   ```
+
+5. **Start the app** and use the "Server Password" field to authenticate.
+
+## 🛠️ Environment Variables
+
+| Variable          | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `GEMINI_API_KEY`  | (Optional) Default API key for direct calls    |
+| `VITE_CONVEX_URL` | Convex deployment URL for proxy authentication |
 
 ## 🚢 Deployment
 
-This project is configured for **GitHub Pages**.
+### GitHub Pages
 
-### GitHub Actions
+This project is configured for **GitHub Pages** deployment.
 
-A workflow is included in `.github/workflows/deploy.yml` that automatically builds and deploys the app to the `/lumina` path when you push to the `main` branch.
+A workflow is included in `.github/workflows/deploy.yml` that automatically builds and deploys the app when you push to the `main` branch.
 
-**To deploy successfully**:
+**To deploy**:
 
-1. Ensure your repository name is `lumina`.
-2. Go to your GitHub Repository **Settings > Pages**.
-3. Under **Build and deployment > Source**, select **GitHub Actions**.
+1. Go to **Settings → Pages**
+2. Under **Source**, select **GitHub Actions**
+
+### Convex Backend
+
+Deploy your Convex backend separately:
+
+```bash
+pnpm convex deploy
+```
+
+## 📁 Project Structure
+
+```
+├── App.tsx                 # Main application component
+├── components/             # React UI components
+├── services/
+│   └── geminiService.ts    # Gemini API integration
+├── convex/                 # Convex backend (HTTP actions)
+│   ├── http.ts             # HTTP route definitions
+│   └── gemini.ts           # Gemini proxy actions
+├── types.ts                # TypeScript type definitions
+└── vite.config.ts          # Vite configuration
+```
 
 ## 📝 License
 

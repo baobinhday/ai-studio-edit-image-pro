@@ -4,6 +4,18 @@ export enum AppMode {
   GENERATE = 'GENERATE'
 }
 
+export enum DrawTool {
+  NONE = 'NONE',
+  AI_EDIT = 'AI_EDIT',
+  CROP = 'CROP',
+  ERASER = 'ERASER',
+  RECT_SELECT = 'RECT_SELECT',
+  ELLIPSE_SELECT = 'ELLIPSE_SELECT',
+  ROTATE = 'ROTATE',
+  RESIZE = 'RESIZE',
+  COLOR_BRUSH = 'COLOR_BRUSH'
+}
+
 export enum GeminiModel {
   FLASH_2_5 = 'gemini-2.5-flash-image',
   PRO_3 = 'gemini-3-pro-image-preview'
@@ -24,6 +36,7 @@ export interface EditorState {
   mask: string | null;
   referenceImage: string | null;
   apiKeyInput: string;
+  passwordInput: string;
   prompt: string;
   loading: boolean;
   error: string | null;
@@ -34,6 +47,8 @@ export interface EditorState {
   activeImageSize: ImageSize;
   activeModel: GeminiModel;
   mode: AppMode;
+  activeTool: DrawTool;
+  brushColor: string;
 }
 
 export interface StyleFilter {

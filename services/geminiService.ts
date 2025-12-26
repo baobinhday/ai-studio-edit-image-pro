@@ -2,6 +2,10 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { AspectRatio, GeminiModel, ImageSize } from "../types";
 
+// Convex URL from environment
+const VITE_CONVEX_URL = process.env.VITE_CONVEX_URL;
+console.log("[geminiService] VITE_CONVEX_URL:", VITE_CONVEX_URL);
+
 const prepareImagePart = async (dataUrl: string) => {
   const base64Data = dataUrl.split(',')[1];
   const mimeType = dataUrl.split(';')[0].split(':')[1];
@@ -19,11 +23,38 @@ export const editImageWithGemini = async (
   prompt: string,
   aspectRatio: AspectRatio,
   apiKeyInput: string,
+  passwordInput: string,
   maskBase64?: string,
   referenceImageBase64?: string
 ): Promise<string> => {
+  // If password is provided and Convex URL is available, use Convex proxy
+  if (passwordInput && VITE_CONVEX_URL) {
+    const response = await fetch(`${VITE_CONVEX_URL}/geminiEdit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        password: passwordInput,
+        prompt,
+        model,
+        aspectRatio,
+        sourceImage: base64Image,
+        maskImage: maskBase64,
+        referenceImage: referenceImageBase64,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Edit failed");
+    }
+
+    const data = await response.json();
+    return data.image;
+  }
+
+  // Fallback: direct API call with user's key
   const apiKey = apiKeyInput || process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key is required to use Lumina Studio.");
+  if (!apiKey) throw new Error("API Key or Password is required to use Lumina Studio.");
 
   const ai = new GoogleGenAI({ apiKey });
   const parts: any[] = [];
@@ -69,11 +100,37 @@ export const generateImageWithGemini = async (
   prompt: string,
   aspectRatio: AspectRatio,
   apiKeyInput: string,
+  passwordInput: string,
   imageSize?: ImageSize,
   referenceImageBase64?: string
 ): Promise<string> => {
+  // If password is provided and Convex URL is available, use Convex proxy
+  if (passwordInput && VITE_CONVEX_URL) {
+    const response = await fetch(`${VITE_CONVEX_URL}/geminiGenerate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        password: passwordInput,
+        prompt,
+        model,
+        aspectRatio,
+        imageSize,
+        referenceImage: referenceImageBase64,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Generation failed");
+    }
+
+    const data = await response.json();
+    return data.image;
+  }
+
+  // Fallback: direct API call with user's key
   const apiKey = apiKeyInput || process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key is required to use Lumina Studio.");
+  if (!apiKey) throw new Error("API Key or Password is required to use Lumina Studio.");
 
   const ai = new GoogleGenAI({ apiKey });
   const parts: any[] = [];

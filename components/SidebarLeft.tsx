@@ -1,11 +1,66 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   AppMode,
   AspectRatio,
+  DrawTool,
   GeminiModel,
   ImageSize,
   PREDEFINED_FILTERS,
 } from "../types";
+
+const DRAW_TOOLS = [
+  { id: DrawTool.AI_EDIT, icon: "🤖", label: "AI Edit" },
+  { id: DrawTool.CROP, icon: "✂️", label: "Crop" },
+  { id: DrawTool.ROTATE, icon: "🔄", label: "Rotate/Flip" },
+  { id: DrawTool.RESIZE, icon: "📐", label: "Resize" },
+  { id: DrawTool.COLOR_BRUSH, icon: "🎨", label: "Color Brush" },
+];
+
+// Resize panel component with local state
+const ResizePanel: React.FC<{ onResize: (w: number, h: number) => void }> = ({
+  onResize,
+}) => {
+  const [width, setWidth] = useState<number>(0);
+  const [height, setHeight] = useState<number>(0);
+
+  return (
+    <div className="mt-4 p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
+        Dimensions
+      </label>
+      <div className="flex gap-2 items-center">
+        <div className="flex-1">
+          <label className="text-[9px] text-slate-500 block mb-1">Width</label>
+          <input
+            type="number"
+            placeholder="W"
+            value={width || ""}
+            onChange={(e) => setWidth(parseInt(e.target.value) || 0)}
+            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200"
+          />
+        </div>
+        <span className="text-slate-500 mt-4">×</span>
+        <div className="flex-1">
+          <label className="text-[9px] text-slate-500 block mb-1">Height</label>
+          <input
+            type="number"
+            placeholder="H"
+            value={height || ""}
+            onChange={(e) => setHeight(parseInt(e.target.value) || 0)}
+            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200"
+          />
+        </div>
+      </div>
+      <button
+        onClick={() => onResize(width, height)}
+        disabled={!width || !height}
+        className="mt-3 w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 rounded-lg text-[10px] font-bold text-white transition-all"
+      >
+        Apply Resize
+      </button>
+    </div>
+  );
+};
 
 interface SidebarLeftProps {
   isOpen: boolean;
@@ -28,11 +83,19 @@ interface SidebarLeftProps {
   mode: AppMode;
   brushSize: number;
   onBrushSizeChange: (size: number) => void;
+  activeTool: DrawTool;
+  onToolChange: (tool: DrawTool) => void;
+  brushColor: string;
+  onBrushColorChange: (color: string) => void;
   prompt: string;
   onPromptChange: (prompt: string) => void;
   loading: boolean;
   error: string | null;
   onAction: () => void;
+  // Transform functions
+  onRotate: (degrees: number) => void;
+  onFlip: (direction: "horizontal" | "vertical") => void;
+  onResize: (width: number, height: number) => void;
 }
 
 const SidebarLeft: React.FC<SidebarLeftProps> = ({
@@ -56,11 +119,18 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({
   mode,
   brushSize,
   onBrushSizeChange,
+  activeTool,
+  onToolChange,
+  brushColor,
+  onBrushColorChange,
   prompt,
   onPromptChange,
   loading,
   error,
   onAction,
+  onRotate,
+  onFlip,
+  onResize,
 }) => {
   return (
     <>
@@ -76,10 +146,10 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* API Authentication */}
+        {/* API Key */}
         <section>
           <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-3">
-            Authentication
+            API Key (Optional)
           </h2>
           <input
             type="password"
@@ -88,6 +158,9 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({
             value={apiKeyInput}
             onChange={(e) => onApiKeyChange(e.target.value)}
           />
+          <p className="text-[9px] text-slate-600 mt-2">
+            Or use server login via header
+          </p>
         </section>
 
         {/* Input Controls */}
@@ -205,164 +278,305 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({
           </div>
         </section>
 
-        {/* Configurations */}
-        <section className="space-y-4">
-          <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-            Settings
-          </h2>
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
-              Engine
-            </label>
-            <select
-              value={activeModel}
-              onChange={(e) => onModelChange(e.target.value as GeminiModel)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer outline-none"
-            >
-              <option value={GeminiModel.FLASH_2_5}>Gemini 2.5 Flash</option>
-              <option value={GeminiModel.PRO_3}>Gemini 3 Pro (HQ)</option>
-            </select>
-          </div>
-
-          {activeModel === GeminiModel.PRO_3 && (
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
-                Resolution
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {["1K", "2K", "4K"].map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => onImageSizeChange(size as ImageSize)}
-                    className={`py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
-                      activeImageSize === size
-                        ? "bg-indigo-600 border-indigo-400 text-white shadow-md shadow-indigo-600/20"
-                        : "bg-slate-800 border-slate-700 text-slate-500"
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
-              Aspect Ratio
-            </label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {["1:1", "16:9", "9:16", "4:3", "3:4"].map((ratio) => (
+        {/* Draw Tools */}
+        {mode === AppMode.EDIT && (
+          <section>
+            <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-3">
+              Draw Tools
+            </h2>
+            <div className="grid grid-cols-4 gap-2">
+              {DRAW_TOOLS.map((tool) => (
                 <button
-                  key={ratio}
-                  onClick={() => onAspectRatioChange(ratio as AspectRatio)}
-                  className={`py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
-                    activeAspectRatio === ratio
-                      ? "bg-indigo-600 border-indigo-400 text-white shadow-md shadow-indigo-600/20"
-                      : "bg-slate-800 border-slate-700 text-slate-500"
+                  key={tool.id}
+                  onClick={() =>
+                    onToolChange(
+                      activeTool === tool.id ? DrawTool.NONE : tool.id
+                    )
+                  }
+                  className={`relative group p-3 rounded-xl border transition-all flex items-center justify-center text-lg ${
+                    activeTool === tool.id
+                      ? "bg-indigo-600 border-indigo-400 shadow-md shadow-indigo-600/20"
+                      : "bg-slate-800 border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/10"
                   }`}
+                  title={tool.label}
                 >
-                  {ratio}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {mode === AppMode.EDIT && (
-            <div>
-              <div className="flex justify-between mb-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">
-                  Brush Size
-                </label>
-                <span className="text-[10px] text-indigo-400">
-                  {brushSize}px
-                </span>
-              </div>
-              <input
-                type="range"
-                min="5"
-                max="100"
-                value={brushSize}
-                onChange={(e) => onBrushSizeChange(parseInt(e.target.value))}
-                className="w-full h-1 bg-slate-800 accent-indigo-500 appearance-none cursor-pointer"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
-              Presets
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {PREDEFINED_FILTERS.map((filter) => (
-                <button
-                  key={filter.id}
-                  onClick={() => onPromptChange(filter.prompt)}
-                  className="flex flex-col items-center gap-1 p-2 bg-slate-800/40 border border-slate-700 rounded-xl hover:border-indigo-500 transition-all text-center"
-                >
-                  <span className="text-sm">{filter.icon}</span>
-                  <span className="text-[9px] text-slate-400 font-bold uppercase">
-                    {filter.name}
+                  {tool.icon}
+                  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-[9px] text-slate-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    {tool.label}
                   </span>
                 </button>
               ))}
             </div>
-          </div>
-        </section>
 
-        {/* Action Area */}
-        <section className="mt-auto pt-6 border-t border-slate-800">
-          <textarea
-            placeholder={
-              mode === AppMode.EDIT
-                ? "Describe changes to the selected area..."
-                : "Describe an image to generate..."
-            }
-            className="w-full h-24 bg-slate-800/80 border border-slate-700 rounded-xl p-3 text-xs focus:ring-2 focus:ring-indigo-500 text-slate-200 resize-none mb-3 outline-none"
-            value={prompt}
-            onChange={(e) => onPromptChange(e.target.value)}
-          />
-          {error && (
-            <div className="break-words text-red-400 text-[9px] mb-3 p-2 bg-red-900/20 border border-red-900/30 rounded-xl leading-relaxed">
-              {error}
-            </div>
-          )}
-          <button
-            onClick={onAction}
-            disabled={loading}
-            className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
-              loading
-                ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20"
-            }`}
-          >
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <svg
-                  className="animate-spin h-3 w-3 text-white"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Processing
+            {/* Tool Options */}
+            {activeTool === DrawTool.COLOR_BRUSH && (
+              <div className="mt-4 space-y-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
+                    Brush Color
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={brushColor}
+                      onChange={(e) => onBrushColorChange(e.target.value)}
+                      className="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={brushColor}
+                      onChange={(e) => onBrushColorChange(e.target.value)}
+                      className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 uppercase"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">
+                      Brush Size
+                    </label>
+                    <span className="text-[10px] text-indigo-400">
+                      {brushSize}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="100"
+                    value={brushSize}
+                    onChange={(e) =>
+                      onBrushSizeChange(parseInt(e.target.value))
+                    }
+                    className="w-full h-1 bg-slate-800 accent-indigo-500 appearance-none cursor-pointer"
+                  />
+                </div>
               </div>
-            ) : (
-              "Run Synthesis"
             )}
-          </button>
-        </section>
+
+            {activeTool === DrawTool.ROTATE && (
+              <div className="mt-4 p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
+                  Transform
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => onRotate(90)}
+                    className="py-2 px-3 bg-slate-700 hover:bg-indigo-600 rounded-lg text-[10px] font-bold text-slate-200 transition-all"
+                  >
+                    ↻ 90°
+                  </button>
+                  <button
+                    onClick={() => onRotate(-90)}
+                    className="py-2 px-3 bg-slate-700 hover:bg-indigo-600 rounded-lg text-[10px] font-bold text-slate-200 transition-all"
+                  >
+                    ↺ -90°
+                  </button>
+                  <button
+                    onClick={() => onFlip("horizontal")}
+                    className="py-2 px-3 bg-slate-700 hover:bg-indigo-600 rounded-lg text-[10px] font-bold text-slate-200 transition-all"
+                  >
+                    ↔ Flip H
+                  </button>
+                  <button
+                    onClick={() => onFlip("vertical")}
+                    className="py-2 px-3 bg-slate-700 hover:bg-indigo-600 rounded-lg text-[10px] font-bold text-slate-200 transition-all"
+                  >
+                    ↕ Flip V
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTool === DrawTool.RESIZE && (
+              <ResizePanel onResize={onResize} />
+            )}
+
+            {activeTool === DrawTool.CROP && (
+              <div className="mt-4 p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+                <p className="text-[10px] text-slate-400 mb-3">
+                  Draw a selection on the image to crop
+                </p>
+                <div className="flex gap-2">
+                  <button className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[10px] font-bold text-white transition-all">
+                    Apply
+                  </button>
+                  <button className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-[10px] font-bold text-slate-200 transition-all">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTool === DrawTool.AI_EDIT && (
+              <div className="mt-4 space-y-4">
+                {/* Engine */}
+                <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700 space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
+                      Engine
+                    </label>
+                    <select
+                      value={activeModel}
+                      onChange={(e) =>
+                        onModelChange(e.target.value as GeminiModel)
+                      }
+                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer outline-none"
+                    >
+                      <option value={GeminiModel.FLASH_2_5}>
+                        Gemini 2.5 Flash
+                      </option>
+                      <option value={GeminiModel.PRO_3}>
+                        Gemini 3 Pro (HQ)
+                      </option>
+                    </select>
+                  </div>
+
+                  {activeModel === GeminiModel.PRO_3 && (
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
+                        Resolution
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {["1K", "2K", "4K"].map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => onImageSizeChange(size as ImageSize)}
+                            className={`py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
+                              activeImageSize === size
+                                ? "bg-indigo-600 border-indigo-400 text-white shadow-md shadow-indigo-600/20"
+                                : "bg-slate-700 border-slate-600 text-slate-400"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
+                      Aspect Ratio
+                    </label>
+                    <select
+                      value={activeAspectRatio}
+                      onChange={(e) =>
+                        onAspectRatioChange(e.target.value as AspectRatio)
+                      }
+                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer outline-none"
+                    >
+                      <option value="1:1">1:1 (Square)</option>
+                      <option value="16:9">16:9 (Landscape)</option>
+                      <option value="9:16">9:16 (Portrait)</option>
+                      <option value="4:3">4:3 (Standard)</option>
+                      <option value="3:4">3:4 (Photo)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">
+                        Mask Brush Size
+                      </label>
+                      <span className="text-[10px] text-indigo-400">
+                        {brushSize}px
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="5"
+                      max="100"
+                      value={brushSize}
+                      onChange={(e) =>
+                        onBrushSizeChange(parseInt(e.target.value))
+                      }
+                      className="w-full h-1 bg-slate-700 accent-indigo-500 appearance-none cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">
+                      Presets
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const filter = PREDEFINED_FILTERS.find(
+                          (f) => f.id === e.target.value
+                        );
+                        if (filter) onPromptChange(filter.prompt);
+                      }}
+                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer outline-none"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Select a preset...
+                      </option>
+                      {PREDEFINED_FILTERS.map((filter) => (
+                        <option key={filter.id} value={filter.id}>
+                          {filter.icon} {filter.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Prompt & Action */}
+                <div className="space-y-3">
+                  <textarea
+                    placeholder={
+                      mode === AppMode.EDIT
+                        ? "Describe changes to the selected area..."
+                        : "Describe an image to generate..."
+                    }
+                    className="w-full h-24 bg-slate-800/80 border border-slate-700 rounded-xl p-3 text-xs focus:ring-2 focus:ring-indigo-500 text-slate-200 resize-none outline-none"
+                    value={prompt}
+                    onChange={(e) => onPromptChange(e.target.value)}
+                  />
+                  {error && (
+                    <div className="break-words text-red-400 text-[9px] p-2 bg-red-900/20 border border-red-900/30 rounded-xl leading-relaxed">
+                      {error}
+                    </div>
+                  )}
+                  <button
+                    onClick={onAction}
+                    disabled={loading}
+                    className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                      loading
+                        ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20"
+                    }`}
+                  >
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <svg
+                          className="animate-spin h-3 w-3 text-white"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Processing
+                      </div>
+                    ) : (
+                      "Run AI Edit"
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
       </aside>
     </>
   );
