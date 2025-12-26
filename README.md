@@ -62,6 +62,10 @@ Use a password to access a shared API key stored securely on the server.
    pnpm convex dev
    ```
 
+   ```bash
+   pnpm convex deploy
+   ```
+
    Follow the prompts to create a new project.
 
 2. **Configure environment variables** in the [Convex Dashboard](https://dashboard.convex.dev):
