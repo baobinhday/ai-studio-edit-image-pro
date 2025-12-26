@@ -8,7 +8,7 @@ const http = httpRouter();
 const corsHeaders = {
   "Access-Control-Allow-Origin": process.env.CLIENT_ORIGIN,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type"
 };
 
 // Generate Image Endpoint
@@ -46,6 +46,28 @@ http.route({
   }),
 });
 
+// Pre-flight request for /geminiGenerate
+http.route({
+  path: "/geminiGenerate",
+  method: "OPTIONS",
+  handler: httpAction(async (_, request) => {
+    // Make sure the necessary headers are present
+    // for this to be a valid pre-flight request
+    const headers = request.headers;
+    if (
+      headers.get("Origin") !== null &&
+      headers.get("Access-Control-Request-Method") !== null &&
+      headers.get("Access-Control-Request-Headers") !== null
+    ) {
+      return new Response(null, {
+        headers: corsHeaders,
+      });
+    } else {
+      return new Response();
+    }
+  }),
+});
+
 // Edit Image Endpoint
 http.route({
   path: "/geminiEdit",
@@ -76,6 +98,28 @@ http.route({
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+  }),
+});
+
+// Pre-flight request for /geminiEdit
+http.route({
+  path: "/geminiEdit",
+  method: "OPTIONS",
+  handler: httpAction(async (_, request) => {
+    // Make sure the necessary headers are present
+    // for this to be a valid pre-flight request
+    const headers = request.headers;
+    if (
+      headers.get("Origin") !== null &&
+      headers.get("Access-Control-Request-Method") !== null &&
+      headers.get("Access-Control-Request-Headers") !== null
+    ) {
+      return new Response(null, {
+        headers: corsHeaders,
+      });
+    } else {
+      return new Response();
     }
   }),
 });

@@ -52,7 +52,7 @@ export const editImageWithGemini = async (
   }
 
   // Fallback: direct API call with user's key
-  const apiKey = apiKeyInput || process.env.API_KEY;
+  const apiKey = apiKeyInput || process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("API Key or Password is required to use Lumina Studio.");
 
   const ai = new GoogleGenAI({ apiKey });
@@ -128,7 +128,7 @@ export const generateImageWithGemini = async (
   }
 
   // Fallback: direct API call with user's key
-  const apiKey = apiKeyInput || process.env.API_KEY;
+  const apiKey = apiKeyInput || process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("API Key or Password is required to use Lumina Studio.");
 
   const ai = new GoogleGenAI({ apiKey });

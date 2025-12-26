@@ -61,7 +61,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setIsKeySet(
-      !!(state.apiKeyInput || state.passwordInput || process.env.API_KEY)
+      !!(state.apiKeyInput || state.passwordInput || process.env.GEMINI_API_KEY)
     );
   }, [state.apiKeyInput, state.passwordInput]);
 
