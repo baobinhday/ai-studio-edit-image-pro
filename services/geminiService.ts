@@ -4,7 +4,6 @@ import { AspectRatio, GeminiModel, ImageSize } from "../types";
 
 // Convex URL from environment
 const VITE_CONVEX_URL = process.env.VITE_CONVEX_URL;
-console.log("[geminiService] VITE_CONVEX_URL:", VITE_CONVEX_URL);
 
 const prepareImagePart = async (dataUrl: string) => {
   const base64Data = dataUrl.split(',')[1];
